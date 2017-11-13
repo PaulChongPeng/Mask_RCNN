@@ -133,7 +133,7 @@ class CocoDataset(utils.Dataset):
                 path=os.path.join(image_dir, coco.imgs[i]['file_name']),
                 width=coco.imgs[i]["width"],
                 height=coco.imgs[i]["height"],
-                annotations=coco.loadAnns(coco.getAnnIds(imgIds=[i], iscrowd=False)))
+                annotations=coco.loadAnns(coco.getAnnIds(imgIds=[i],catIds=class_ids, iscrowd=False)))
         if return_coco:
             return coco
 
@@ -251,7 +251,7 @@ def build_coco_results(dataset, image_ids, rois, class_ids, scores, masks):
     return results
 
 
-def evaluate_coco(dataset, coco, eval_type="bbox", limit=0):
+def evaluate_coco(model, dataset, coco, eval_type="bbox", limit=0):
     """Runs official COCO evaluation.
     dataset: A Dataset object with valiadtion data
     eval_type: "bbox" or "segm" for bounding box or segmentation evaluation
@@ -409,7 +409,7 @@ if __name__ == '__main__':
         dataset_val.prepare()
 
         # TODO: evaluating on 500 images. Set to 0 to evaluate on all images.
-        evaluate_coco(dataset_val, coco, "bbox", limit=500)
+        evaluate_coco(model, dataset_val, coco, "bbox", limit=500)
     else:
         print("'{}' is not recognized. "
               "Use 'train' or 'evaluate'".format(args.command))
