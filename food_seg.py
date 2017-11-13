@@ -140,7 +140,7 @@ def main(_):
                 result_file.write(result_line)
                 visualize.save_image(image_batch[j], image_name_batch[j], r['rois'], r['masks'], r['class_ids'], r['scores'],
                            coco_class_names, filter_classs_names=food_class_names,
-                           scores_thresh=prob_thresh, mode=4)
+                           scores_thresh=prob_thresh, mode=0)
             image_batch = []
             image_name_batch = []
 
