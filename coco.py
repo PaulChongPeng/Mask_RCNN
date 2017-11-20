@@ -51,8 +51,9 @@ ROOT_DIR = os.getcwd()
 # Path to trained weights file
 COCO_MODEL_PATH = os.path.join(ROOT_DIR, "mask_rcnn_coco.h5")
 
-# Directory to save logs and trained model
-MODEL_DIR = os.path.join(ROOT_DIR, "logs")
+# Directory to save logs and model checkpoints, if not provided
+# through the command line argument --logs
+DEFAULT_LOGS_DIR = os.path.join(ROOT_DIR, "logs")
 
 
 ############################################################
@@ -133,7 +134,7 @@ class CocoDataset(utils.Dataset):
                 path=os.path.join(image_dir, coco.imgs[i]['file_name']),
                 width=coco.imgs[i]["width"],
                 height=coco.imgs[i]["height"],
-                annotations=coco.loadAnns(coco.getAnnIds(imgIds=[i],catIds=class_ids, iscrowd=False)))
+                annotations=coco.loadAnns(coco.getAnnIds(imgIds=[i], catIds=class_ids, iscrowd=False)))
         if return_coco:
             return coco
 
@@ -251,14 +252,14 @@ def build_coco_results(dataset, image_ids, rois, class_ids, scores, masks):
     return results
 
 
-def evaluate_coco(model, dataset, coco, eval_type="bbox", limit=0):
+def evaluate_coco(model, dataset, coco, eval_type="bbox", limit=0, image_ids=None):
     """Runs official COCO evaluation.
     dataset: A Dataset object with valiadtion data
     eval_type: "bbox" or "segm" for bounding box or segmentation evaluation
     limit: if not 0, it's the number of images to use for evaluation
     """
     # Pick COCO images from the dataset
-    image_ids = dataset.image_ids
+    image_ids = image_ids or dataset.image_ids
 
     # Limit to a subset
     if limit:
@@ -321,10 +322,19 @@ if __name__ == '__main__':
     parser.add_argument('--model', required=True,
                         metavar="/path/to/weights.h5",
                         help="Path to weights .h5 file or 'coco'")
+    parser.add_argument('--logs', required=False,
+                        default=DEFAULT_LOGS_DIR,
+                        metavar="/path/to/logs/",
+                        help='Logs and checkpoints directory (default=logs/)')
+    parser.add_argument('--limit', required=False,
+                        default=500,
+                        metavar="<image count>",
+                        help='Images to use for evaluation (defaults=500)')
     args = parser.parse_args()
     print("Command: ", args.command)
     print("Model: ", args.model)
     print("Dataset: ", args.dataset)
+    print("Logs: ", args.logs)
 
     # Configurations
     if args.command == "train":
@@ -341,10 +351,10 @@ if __name__ == '__main__':
     # Create model
     if args.command == "train":
         model = modellib.MaskRCNN(mode="training", config=config,
-                                  model_dir=MODEL_DIR)
+                                  model_dir=args.logs)
     else:
         model = modellib.MaskRCNN(mode="inference", config=config,
-                                  model_dir=MODEL_DIR)
+                                  model_dir=args.logs)
 
     # Select weights file to load
     if args.model.lower() == "coco":
@@ -407,9 +417,8 @@ if __name__ == '__main__':
         dataset_val = CocoDataset()
         coco = dataset_val.load_coco(args.dataset, "minival", return_coco=True)
         dataset_val.prepare()
-
-        # TODO: evaluating on 500 images. Set to 0 to evaluate on all images.
-        evaluate_coco(model, dataset_val, coco, "bbox", limit=500)
+        print("Running COCO evaluation on {} images.".format(args.limit))
+        evaluate_coco(model, dataset_val, coco, "bbox", limit=int(args.limit))
     else:
         print("'{}' is not recognized. "
               "Use 'train' or 'evaluate'".format(args.command))
